@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(CapsuleCollider2D))]
@@ -13,6 +14,8 @@ public class CharacterController2D : MonoBehaviour
     public float gravityScale = 1.5f;
     public Camera mainCamera;
 
+    public Collider2D[] excludedGroundColliders;
+
     bool facingRight = true;
     float moveDirection = 0;
     bool isGrounded = false;
@@ -20,6 +23,8 @@ public class CharacterController2D : MonoBehaviour
     Rigidbody2D r2d;
     CapsuleCollider2D mainCollider;
     Transform t;
+
+    public bool u_Dash, u_Bomb, u_Double_jump, u_Parry;
 
     // Use this for initialization
     void Start()
@@ -75,6 +80,8 @@ public class CharacterController2D : MonoBehaviour
             r2d.velocity = new Vector2(r2d.velocity.x, jumpHeight);
         }
 
+        if (Input.GetKeyDown(KeyCode.))
+
         // Camera follow
         if (mainCamera)
         {
@@ -95,7 +102,7 @@ public class CharacterController2D : MonoBehaviour
         {
             for (int i = 0; i < colliders.Length; i++)
             {
-                if (colliders[i] != mainCollider)
+                if (colliders[i] != mainCollider && !excludedGroundColliders.Contains(colliders[i]))
                 {
                     isGrounded = true;
                     break;
