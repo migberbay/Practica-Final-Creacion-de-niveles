@@ -12,19 +12,27 @@ public class CharacterController2D : MonoBehaviour
     public float maxSpeed = 3.4f;
     public float jumpHeight = 6.5f;
     public float gravityScale = 1.5f;
-    public Camera mainCamera;
 
     public Collider2D[] excludedGroundColliders;
 
     bool facingRight = true;
     float moveDirection = 0;
-    bool isGrounded = false;
-    Vector3 cameraPos;
+    
     Rigidbody2D r2d;
     CapsuleCollider2D mainCollider;
     Transform t;
 
+    public GameObject parry_object;
+
+    public BombThrower thrower;
+
     public bool u_Dash, u_Bomb, u_Double_jump, u_Parry;
+
+    public float dash_cd = .75f, dash_curr_cd = .75f, parry_cd = .75f, parry_curr_cd = .75f, bomb_cd = .5f, bomb_curr_cd = .5f, melee_cd = .33f, melee_curr_cd =.33f;
+    
+    public bool a_jump = false, isGrounded = false, isDashing = false, isParrying = false;
+
+    public Animator animator;
 
     // Use this for initialization
     void Start()
@@ -36,31 +44,24 @@ public class CharacterController2D : MonoBehaviour
         r2d.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         r2d.gravityScale = gravityScale;
         facingRight = t.localScale.x > 0;
-
-        if (mainCamera)
-        {
-            cameraPos = mainCamera.transform.position;
-        }
     }
 
     // Update is called once per frame
     void Update()
     {
         // Movement controls
-        if ((Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)) && (isGrounded || Mathf.Abs(r2d.velocity.x) > 0.01f))
-        {
-            moveDirection = Input.GetKey(KeyCode.A) ? -1 : 1;
-        }
-        else
-        {
-            if (isGrounded || r2d.velocity.magnitude < 0.01f)
+        if(!isDashing && !isParrying){
+            if ((Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.D)))
             {
+                moveDirection = Input.GetKey(KeyCode.A) ? -1 : 1;
+            }
+            else if (isGrounded || r2d.velocity.magnitude < 0.01f){
                 moveDirection = 0;
             }
         }
 
         // Change facing direction
-        if (moveDirection != 0)
+        if (moveDirection != 0 && (!isDashing && !isParrying))
         {
             if (moveDirection > 0 && !facingRight)
             {
@@ -75,20 +76,65 @@ public class CharacterController2D : MonoBehaviour
         }
 
         // Jumping
-        if (Input.GetKeyDown(KeyCode.W) && isGrounded)
+        if (Input.GetKeyDown(KeyCode.W) && !isParrying && !isDashing) 
         {
-            r2d.velocity = new Vector2(r2d.velocity.x, jumpHeight);
+            // floor jump
+            if(isGrounded){
+                r2d.velocity = new Vector2(r2d.velocity.x, jumpHeight);
+                if(u_Double_jump){
+                    a_jump = true;
+                }
+            }
+            else if(a_jump && u_Double_jump){
+                r2d.velocity = new Vector2(r2d.velocity.x, jumpHeight*0.75f);
+                a_jump = false;
+            } 
         }
 
-        if (Input.GetKeyDown(KeyCode.))
+        if (Input.GetKeyDown(KeyCode.Space) && u_Dash && dash_curr_cd <= 0 && !isParrying){ // dash
+            dash_curr_cd = dash_cd;
+            StartCoroutine(Dash());
+        }
 
-        // Camera follow
-        if (mainCamera)
-        {
-            mainCamera.transform.position = new Vector3(t.position.x, cameraPos.y, cameraPos.z);
+        if(Input.GetKeyDown(KeyCode.RightShift) || Input.GetKeyDown(KeyCode.LeftShift) && u_Parry && parry_curr_cd <= 0 && !isDashing){
+            parry_curr_cd = parry_cd;
+            StartCoroutine(Parry());
+        }
+
+        if(Input.GetMouseButtonDown(0) && melee_curr_cd < 0){
+            melee_curr_cd = melee_cd;
+            animator.SetTrigger("melee");
+            Debug.Log("melee attack here.");
+        }
+
+        if(Input.GetMouseButtonDown(1) && u_Bomb && bomb_curr_cd < 0){
+            bomb_curr_cd = bomb_cd;
+            thrower.createNew();
         }
     }
 
+    IEnumerator Dash(){
+        float dash_time = 0.25f;
+        isDashing = true;
+        while(dash_time > 0){
+            r2d.velocity = new Vector2((moveDirection) * (maxSpeed*4), r2d.velocity.y);
+            yield return null;
+            dash_time -= Time.deltaTime;
+        }
+        isDashing = false;
+    }
+
+    IEnumerator Parry(){
+        float parry_time = 0.25f;
+        isParrying = true;
+        while(parry_time > 0){
+            parry_object.SetActive(true);
+            yield return null;
+            parry_time -= Time.deltaTime;
+        }
+        parry_object.SetActive(false);
+        isParrying = false;
+    }
     void FixedUpdate()
     {
         Bounds colliderBounds = mainCollider.bounds;
@@ -110,8 +156,17 @@ public class CharacterController2D : MonoBehaviour
             }
         }
 
+        //Reduce dash cd
+        dash_curr_cd -= Time.fixedDeltaTime;
+        parry_curr_cd -= Time.fixedDeltaTime;
+        bomb_curr_cd -= Time.fixedDeltaTime;
+        melee_curr_cd -= Time.fixedDeltaTime;
+
         // Apply movement velocity
-        r2d.velocity = new Vector2((moveDirection) * maxSpeed, r2d.velocity.y);
+        if(!isDashing){
+            r2d.velocity = new Vector2((moveDirection) * maxSpeed, r2d.velocity.y);
+        }
+        
 
         // Simple debug
         Debug.DrawLine(groundCheckPos, groundCheckPos - new Vector3(0, colliderRadius, 0), isGrounded ? Color.green : Color.red);
