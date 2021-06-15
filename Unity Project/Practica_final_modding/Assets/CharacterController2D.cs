@@ -55,7 +55,7 @@ public class CharacterController2D : MonoBehaviour
             {
                 moveDirection = Input.GetKey(KeyCode.A) ? -1 : 1;
             }
-            else if (isGrounded || r2d.velocity.magnitude < 0.01f){
+            else{
                 moveDirection = 0;
             }
         }
