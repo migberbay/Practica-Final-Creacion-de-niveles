@@ -117,7 +117,7 @@ public class CharacterController2D : MonoBehaviour
         float dash_time = 0.25f;
         isDashing = true;
         while(dash_time > 0){
-            r2d.velocity = new Vector2((moveDirection) * (maxSpeed*4), r2d.velocity.y);
+            r2d.velocity = new Vector2((moveDirection) * (maxSpeed*4), 0);
             yield return null;
             dash_time -= Time.deltaTime;
         }
